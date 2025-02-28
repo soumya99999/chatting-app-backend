@@ -1,0 +1,18 @@
+# Logs
+logs
+*.log
+
+# Dependencies
+node_modules
+
+# Compiled output
+dist
+build
+out
+
+# Environment variables
+.env
+
+# Cache & temporary files
+.nyc_output
+coverage/
