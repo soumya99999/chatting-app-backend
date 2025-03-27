@@ -94,10 +94,13 @@ export const sendMessage = asyncHandler(async (req: AuthRequest, res: Response):
 
 export const markMessageDelivered = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     const { messageId } = req.params;
-    const userId = req.user._id.toString(); // Define userId
+    const { userId } = req.body;
+
+    console.log("Marking message as delivered:", { messageId, userId });
 
     // Check if messageId is defined and valid
     if (!messageId || !Types.ObjectId.isValid(messageId)) {
+        console.error("Invalid message ID:", messageId);
         res.status(400).json({ message: "Invalid message ID." });
         return;
     }
@@ -105,13 +108,24 @@ export const markMessageDelivered = asyncHandler(async (req: AuthRequest, res: R
     try {
         const message = await Message.findById(messageId);
         if (!message) {
+            console.error("Message not found:", messageId);
             res.status(404).json({ message: "Message not found." });
             return;
         }
 
         // Update the message status to delivered
-        if (!message.deliveredBy.includes(userId)) {
+        if (!message.deliveredBy.some(id => id.toString() === userId)) {
             message.deliveredBy.push(userId);
+            
+            // Get the chat to check if this is a one-to-one chat
+            const chat = await Chat.findById(message.chat).populate('users', '_id');
+            if (chat && !chat.isGroupChat) {
+                // For one-to-one chats, only mark as read if the recipient has delivered it
+                const otherUser = chat.users.find(user => user._id.toString() !== userId);
+                if (otherUser) {
+                    message.isRead = message.deliveredBy.some(id => id.toString() === otherUser._id.toString());
+                }
+            }
         }
 
         await message.save();
@@ -123,6 +137,8 @@ export const markMessageDelivered = asyncHandler(async (req: AuthRequest, res: R
                 chatId: message.chat.toString(),
                 userId,
                 deliveredBy: message.deliveredBy,
+                readBy: message.readBy,
+                isRead: message.isRead
             });
             console.log("Message delivered status emitted:", { messageId, chatId: message.chat.toString(), userId });
         }
@@ -176,44 +192,43 @@ export const markMessageAsRead = asyncHandler(async (req: AuthRequest, res: Resp
         }
 
         // Update readBy to include the current user
-        if (!message.readBy.includes(userId)) {
+        if (!message.readBy.some(id => id.toString() === userId)) {
             message.readBy.push(userId);
         }
 
         // For one-to-one chats, set isRead if the recipient has read it
         const chat = await Chat.findById(message.chat).populate('users');
-        if (chat && !chat.isGroupChat) { // Assuming one-to-one chats have isGroupChat: false
-            const otherUser  = chat.users.find(user => user._id.toString() !== userId);
-            message.isRead = otherUser ? otherUser._id.toString() in message.readBy : false;
+        if (chat && !chat.isGroupChat) {
+            const otherUser = chat.users.find(user => user._id.toString() !== userId);
+            if (otherUser) {
+                message.isRead = message.readBy.some(id => id.toString() === otherUser._id.toString());
+            }
         } else {
-            // For group chats, keep the original logic (all users read)
-            message.isRead = message.readBy.length === chat?.users.length;
+            // For group chats, mark as read if all users have read it
+            message.isRead = chat?.users.every(user => 
+                message.readBy.some(id => id.toString() === user._id.toString())
+            ) || false;
         }
 
         await message.save();
-
-        const updatedMessage = await Message.findById(messageId as string)
-            .populate('sender', '_id name email profilePicture')
-            .lean();
 
         const chatId = message.chat.toString();
         console.log("Chat ID associated with the message:", chatId);
 
         const io = req.app.get('io');
         if (io) {
-            io.to(chatId).emit('message status update', { // Renamed for consistency
+            io.to(chatId).emit('message status update', {
                 messageId,
                 chatId,
                 userId,
-                deliveredBy: message.deliveredBy, // Include deliveredBy for completeness
-                readBy: message.readBy, // Include readBy for real-time updates
-                isRead: message.isRead // Include isRead for real-time updates
+                deliveredBy: message.deliveredBy,
+                readBy: message.readBy,
+                isRead: message.isRead
             });
-            console.log("Message status updated and emitted:", { messageId, chatId, userId, deliveredBy: message.deliveredBy, readBy: message.readBy, isRead: message.isRead });
+            console.log("Message status updated and emitted:", { messageId, chatId, userId });
         }
 
-        res.status(200).json({ message: "Message marked as read", updatedMessage });
-        console.log("Successfully marked message as read:", updatedMessage);
+        res.status(200).json({ message: "Message marked as read", updatedMessage: message });
     } catch (error: any) {
         console.error('Error marking message as read:', error.message);
         res.status(500).json({ message: "Error updating read status." });

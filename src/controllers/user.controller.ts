@@ -1,5 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
-import User, { DEFAULT_PROFILE_PICTURE } from "../models/User";
+import User from "../models/User";
 import {AuthRequest} from '../middlewares/authMiddleware'
 
 export const searchUsers = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -37,7 +37,7 @@ export const searchUsers = async (req: AuthRequest, res: Response): Promise<void
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                profilePicture: user.profilePicture
+                profilePicture: user.profilePicture || null
             }))
         });
 
@@ -80,7 +80,7 @@ export const getCurrentUser = async (req: AuthRequest, res: Response): Promise<v
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                profilePicture: user.profilePicture || DEFAULT_PROFILE_PICTURE
+                profilePicture: user.profilePicture || null
             }
         });
     } catch (error) {
@@ -116,7 +116,7 @@ export const fetchUsers = async (req: AuthRequest, res: Response): Promise<void>
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                profilePicture: user.profilePicture || DEFAULT_PROFILE_PICTURE
+                profilePicture: user.profilePicture || null
             }))
         });
     } catch (error) {

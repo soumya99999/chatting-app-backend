@@ -1,6 +1,18 @@
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import type { Message } from '../types/message';
+import MessageModel from '../models/Message';
+import type { IMessage } from '../models/Message';
+import { Types } from 'mongoose';
+
+interface PopulatedChat {
+    _id: Types.ObjectId;
+    users: { _id: Types.ObjectId }[];
+}
+
+interface PopulatedMessage extends Omit<IMessage, 'chat'> {
+    chat: PopulatedChat;
+}
 
 const initSocket = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) => {
     const activeUsers = new Map<string, string>(); // Maps userId -> socketId
@@ -22,6 +34,39 @@ const initSocket = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEvents
             socket.join(userId); 
             io.emit('user online', userId); 
 
+            // When a user comes online, mark all their unread messages as delivered
+            MessageModel.find({
+                deliveredBy: { $ne: new Types.ObjectId(userId) }
+            })
+            .populate({
+                path: 'chat',
+                select: 'users'
+            })
+            .lean()
+            .then((messages) => {
+                messages.forEach(async (message) => {
+                    const populatedMessage = message as unknown as PopulatedMessage;
+                    if (populatedMessage.chat.users.some(user => user._id.toString() === userId)) {
+                        const userIdObjectId = new Types.ObjectId(userId);
+                        if (!populatedMessage.deliveredBy.some(id => id.equals(userIdObjectId))) {
+                            await MessageModel.findByIdAndUpdate(
+                                populatedMessage._id,
+                                { $addToSet: { deliveredBy: userIdObjectId } }
+                            );
+                            
+                            io.to(populatedMessage.chat._id.toString()).emit('message delivered', {
+                                messageId: populatedMessage._id,
+                                chatId: populatedMessage.chat._id.toString(),
+                                userId,
+                                deliveredBy: [...populatedMessage.deliveredBy, userIdObjectId].map(id => id.toString()),
+                                readBy: populatedMessage.readBy.map(id => id.toString()),
+                                isRead: populatedMessage.isRead
+                            });
+                        }
+                    }
+                });
+            });
+
             activeUsers.forEach((_, existingUserId) => {
                 if (existingUserId !== userId) {
                     socket.emit('user online', existingUserId);
@@ -32,10 +77,52 @@ const initSocket = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEvents
         socket.on('join chat', (chatId: string) => {
             console.log(`📝 User joined chat: ${chatId}`);
             socket.join(chatId);
+
+            // When a user joins a chat, mark all messages as read
+            const userId = Array.from(activeUsers.entries())
+                .find(([_, socketId]) => socketId === socket.id)?.[0];
+
+            if (userId) {
+                MessageModel.find({
+                    chat: chatId,
+                    readBy: { $ne: new Types.ObjectId(userId) }
+                })
+                .populate({
+                    path: 'chat',
+                    select: 'users'
+                })
+                .lean()
+                .then((messages) => {
+                    messages.forEach(async (message) => {
+                        const populatedMessage = message as unknown as PopulatedMessage;
+                        if (populatedMessage.chat.users.some(user => user._id.toString() === userId)) {
+                            const userIdObjectId = new Types.ObjectId(userId);
+                            if (!populatedMessage.readBy.some(id => id.equals(userIdObjectId))) {
+                                await MessageModel.findByIdAndUpdate(
+                                    populatedMessage._id,
+                                    { 
+                                        $addToSet: { readBy: userIdObjectId },
+                                        isRead: true
+                                    }
+                                );
+                                
+                                io.to(chatId).emit('message status update', {
+                                    messageId: populatedMessage._id,
+                                    chatId: chatId,
+                                    userId,
+                                    deliveredBy: populatedMessage.deliveredBy.map(id => id.toString()),
+                                    readBy: [...populatedMessage.readBy, userIdObjectId].map(id => id.toString()),
+                                    isRead: true
+                                });
+                            }
+                        }
+                    });
+                });
+            }
         });
 
         socket.on('new message', (messageData: Message) => {
-            const { _id, chatId } = messageData;
+            const { _id, chatId, senderId } = messageData;
             if (!chatId) return console.error('❌ Missing chatId in messageData');
 
             if (messageHistory.has(_id)) {
@@ -43,6 +130,24 @@ const initSocket = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEvents
                 return;
             }
             messageHistory.set(_id, true);
+            
+            // Get all users in the chat except the sender
+            const chatUsers = messageData.chat?.users || [];
+            const recipientId = chatUsers.find(user => user._id !== senderId)?._id;
+            
+            // If recipient is online, mark message as delivered immediately
+            if (recipientId && activeUsers.has(recipientId)) {
+                io.to(chatId).emit('message delivered', { 
+                    messageId: _id, 
+                    chatId, 
+                    userId: recipientId,
+                    deliveredBy: [recipientId],
+                    readBy: [],
+                    isRead: false
+                });
+                console.log(`✅ Message delivered to online user in chat ${chatId}`);
+            }
+            
             io.to(chatId).emit('message received', messageData);
             console.log(`📩 Message sent to chat ${chatId}`);
         });
@@ -57,20 +162,35 @@ const initSocket = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEvents
 
         socket.on('mark message delivered', ({ messageId, chatId, userId }) => {
             if (messageId && chatId && userId) {
-                io.to(chatId).emit('message delivered', { messageId, chatId, userId });
+                console.log(`Marking message as delivered via socket:`, { messageId, chatId, userId });
+                io.to(chatId).emit('message delivered', { 
+                    messageId, 
+                    chatId, 
+                    userId,
+                    deliveredBy: [userId],
+                    readBy: [],
+                    isRead: false
+                });
                 console.log(`✅ Message delivered in chat ${chatId}`);
+            } else {
+                console.error('Missing required fields for mark message delivered:', { messageId, chatId, userId });
             }
         });
 
         socket.on('mark message read', ({ messageId, chatId, userId }) => {
             if (messageId && chatId && userId) {
+                console.log(`Marking message as read via socket:`, { messageId, chatId, userId });
                 io.to(chatId).emit('message status update', {
                     messageId,
                     chatId,
                     userId,
-                    isRead: true,
+                    deliveredBy: [userId],
+                    readBy: [userId],
+                    isRead: true
                 });
                 console.log(`✅ Message read in chat ${chatId}`);
+            } else {
+                console.error('Missing required fields for mark message read:', { messageId, chatId, userId });
             }
         });
 

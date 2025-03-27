@@ -10,16 +10,11 @@ export interface IUser extends Document {
     otpExpiration?: Date; // Field to store OTP expiration time
 }
 
-export const DEFAULT_PROFILE_PICTURE = "https://www.gravatar.com/avatar/default?d=mp";
-
 const UserSchema: Schema = new Schema(
     {
         name: { type: String, required: true },
         email: { type: String, required: true, unique: true },
-        profilePicture: {
-            type: String,
-            default: DEFAULT_PROFILE_PICTURE
-        },
+        profilePicture: { type: String }, // Optional profile picture
         password: { type: String, required: false }, // Optional for Google sign-ups
         googleId: { type: String, required: false, default: "" }, // Optional: Store Google ID
         otp: { type: String }, // Add OTP field
@@ -27,12 +22,5 @@ const UserSchema: Schema = new Schema(
     },
     { timestamps: true }
 );
-
-UserSchema.pre('save', function(next) {
-    if (!this.profilePicture) {
-        this.profilePicture = DEFAULT_PROFILE_PICTURE;
-    }
-    next();
-});
 
 export default mongoose.model<IUser>('user', UserSchema);

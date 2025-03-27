@@ -32,4 +32,8 @@ export interface Message {
     readBy: string[]; // Use string for frontend
     isRead: boolean;
     timestamp: Date; // Convert to Date on the frontend
+    chat?: {
+        _id: string;
+        users: RawUser[];
+    };
 }

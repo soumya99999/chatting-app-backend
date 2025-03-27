@@ -16,7 +16,7 @@ const router = express.Router();
 router.get('/:chatId/history', authenticate, fetchMessages);  // Fetch All messages
 router.post('/messages', authenticate, sendMessage);     // Send message
 router.put('/:messageId/read', authenticate, markMessageAsRead);   
-router.put('/:messageId/deliver', authenticate, markMessageDelivered); // New route for marking message as delivered
+router.put('/:messageId/delivered', authenticate, markMessageDelivered); // New route for marking message as delivered
 router.get('/:messageId/search', authenticate, searchMessage);      // Search Message
 
 
