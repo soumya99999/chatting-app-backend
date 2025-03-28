@@ -6,6 +6,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import passport from 'passport';
 import connectDB from './Config/db';
 import authRoutes from './routes/authRoutes';
@@ -33,6 +34,22 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
+
+// Configure CSP with helmet
+app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        fontSrc: ["'self'", 'data:', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+        connectSrc: ["'self'", 'http://localhost:8081', 'http://localhost:5173'],
+        frameSrc: ["'self'", 'https://accounts.google.com'],
+      },
+    })
+  );
+
 
 // Make sure these middleware are in the correct order
 app.use(cookieParser());

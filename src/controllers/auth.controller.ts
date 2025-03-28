@@ -124,51 +124,51 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Google login handler
-export const googleLoginHandler: RequestHandler = async (req, res): Promise<void> => {
-    const { token } = req.body;
+// export const googleLoginHandler: RequestHandler = async (req, res): Promise<void> => {
+//     const { token } = req.body;
 
-    if (!token) {
-        res.status(400).json({ message: 'Token is required' });
-        return;
-    }
+//     if (!token) {
+//         res.status(400).json({ message: 'Token is required' });
+//         return;
+//     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY!) as jwt.JwtPayload & { id: string };
-        let user = await User.findOne({ googleId: decoded.id });
+//     try {
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY!) as jwt.JwtPayload & { id: string };
+//         let user = await User.findOne({ googleId: decoded.id });
 
-        if (!user) {
-            user = await User.create({
-                name: decoded.name,
-                email: decoded.email,
-                googleId: decoded.id,
-            });
-        }
+//         if (!user) {
+//             user = await User.create({
+//                 name: decoded.name,
+//                 email: decoded.email,
+//                 googleId: decoded.id,
+//             });
+//         }
 
-        // Generate a new JWT token for the user
-        const newToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY!, { expiresIn: '1d' });
+//         // Generate a new JWT token for the user
+//         const newToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY!, { expiresIn: '1d' });
 
-        // Set the token as an HTTP-only cookie
-        res.cookie('token', newToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000 // 1 day
-        });
+//         // Set the token as an HTTP-only cookie
+//         res.cookie('token', newToken, {
+//             httpOnly: true,
+//             secure: process.env.NODE_ENV === 'production',
+//             sameSite: 'strict',
+//             maxAge: 24 * 60 * 60 * 1000 // 1 day
+//         });
 
-        // Respond with user information only
-        res.status(200).json({ 
-            success: true,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                profilePicture: user.profilePicture
-            }
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Invalid token or error occurred' });
-    }
-};
+//         // Respond with user information only
+//         res.status(200).json({ 
+//             success: true,
+//             user: {
+//                 id: user._id,
+//                 name: user.name,
+//                 email: user.email,
+//                 profilePicture: user.profilePicture
+//             }
+//         });
+//     } catch (err) {
+//         res.status(500).json({ message: 'Invalid token or error occurred' });
+//     }
+// };
 
 export const sendOTP = async (req: Request, res: Response): Promise<void> => {
     const { email } = req.body;
