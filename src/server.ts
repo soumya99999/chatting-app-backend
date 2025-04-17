@@ -29,7 +29,7 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5173', // Your frontend URL
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow both localhost and IP
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -44,12 +44,11 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         scriptSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        connectSrc: ["'self'", 'http://localhost:8081', 'http://localhost:5173'],
+        connectSrc: ["'self'", 'http://localhost:8081', 'http://127.0.0.1:8081', 'http://localhost:5173', 'ws://localhost:8081'],
         frameSrc: ["'self'", 'https://accounts.google.com'],
       },
     })
-  );
-
+);
 
 // Make sure these middleware are in the correct order
 app.use(cookieParser());
@@ -61,27 +60,70 @@ app.use(passport.initialize());
 
 connectDB(); // Wait for MongoDB to connect
 
-// Initialize Socket.IO only after DB connection
+// Initialize Socket.IO with proper error handling
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5173',
+        origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
     },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+});
+
+// Handle Socket.IO errors
+io.on('connect_error', (error) => {
+    console.error('Socket.IO connection error:', error);
+});
+
+io.on('error', (error) => {
+    console.error('Socket.IO error:', error);
 });
 
 app.set('io', io);
 
-initSocket(io);
+// Initialize socket with error handling
+try {
+    initSocket(io);
+    console.log('✅ Socket.IO initialized successfully');
+} catch (error) {
+    console.error('❌ Error initializing Socket.IO:', error);
+}
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
-app.use('/api/messages', messageRoutes)
+app.use('/api/messages', messageRoutes);
+
+// Error handling middleware
+app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Global error handler:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8081; // Changed default port to 8081
 server.listen(PORT, () => {
     console.log(`✅ Server is running on port ${PORT}`);
+});
+
+// Handle server errors
+server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+    } else {
+        console.error('❌ Server error:', error);
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
 });

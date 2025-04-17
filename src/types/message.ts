@@ -1,8 +1,15 @@
+// backend/src/types/message.ts
 export interface RawUser {
     _id: string;
     name: string;
     email: string;
     profilePicture?: string;
+    isGroupChat:boolean;
+}
+
+export interface RawReaction {
+    user: RawUser;
+    emoji: string;
 }
 
 export interface RawMessage {
@@ -14,24 +21,30 @@ export interface RawMessage {
     sender: RawUser;
     content: string;
     contentType: 'text' | 'sticker' | 'gif';
-    deliveredBy: string[]; // New field to track delivery (double gray ticks)
-    readBy: string[]; // Tracks who has read the message (blue double ticks)
-    isRead: boolean; // Indicates if the recipient has read the message
+    deliveredBy: string[];
+    readBy: string[];
+    isRead: boolean;
+    mentions: string[];
+    replyTo?: RawMessage;
+    reactions: RawReaction[];
     createdAt: string;
     updatedAt: string;
 }
 
 export interface Message {
     _id: string;
-    chatId: string; // Use chatId for consistency with frontend
+    chatId: string;
     senderId: string;
     sender: RawUser;
     content: string;
     contentType: 'text' | 'sticker' | 'gif';
-    deliveredBy: string[]; // Use string for frontend
-    readBy: string[]; // Use string for frontend
+    deliveredBy: string[];
+    readBy: string[];
     isRead: boolean;
-    timestamp: Date; // Convert to Date on the frontend
+    mentions: string[];
+    replyTo?: string;
+    reactions: RawReaction[];
+    timestamp: Date;
     chat?: {
         _id: string;
         users: RawUser[];
