@@ -35,8 +35,6 @@
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "react-redux": "^9.2.0",
-    "redux": "^5.0.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
