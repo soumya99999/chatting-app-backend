@@ -12,12 +12,32 @@
 
     /* Type Checking */
     "strict": true,                                      /* Enable strict type checking */
-    "skipLibCheck": true                                 /* Skip type checking of declaration files for speed */
+    "skipLibCheck": true,                                 /* Skip type checking of declaration files for speed */
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* Additional Checks */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Module Resolution */
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
 
     /* Emit */
-    // "sourceMap": false,                               /* Omit for production to reduce size (add if debugging needed) */
-    // "declaration": false,                             /* Omit .d.ts files unless needed for external use */
-    // "removeComments": true                            /* Remove comments for smaller output (optional) */
+    "sourceMap": true,
+    "declaration": true,
+    "removeComments": false
   },
   "include": ["src/**/*"],                               /* Include all TypeScript files in src/ */
   "exclude": ["node_modules", "dist"]                    /* Exclude node_modules and dist */
