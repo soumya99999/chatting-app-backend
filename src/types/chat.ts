@@ -1,11 +1,17 @@
-import { RawUser, RawMessage } from './message'; // Assuming message.ts exports these
+// backend/src/types/chat.ts
+import { RawUser, RawMessage } from './message';
 
 export interface Chat {
-    id: string; // Use _id to match Mongoose
+    id: string;
     chatName?: string;
     isGroupChat: boolean;
-    users: RawUser[]; // Array of populated user objects, not strings
-    latestMessage?: RawMessage | string; // Can be a full message object or just the ID
-    createdAt: string; // ISO string from Mongoose
-    updatedAt: string; // ISO string from Mongoose
+    users: RawUser[];
+    latestMessage?: RawMessage | string;
+    groupAdmins: RawUser[]; // Changed to array
+    groupIcon?: string;
+    description?: string;
+    mutedUsers: RawUser[];
+    pinnedMessages: RawMessage[];
+    createdAt: string;
+    updatedAt: string;
 }
