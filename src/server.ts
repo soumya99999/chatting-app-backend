@@ -29,7 +29,12 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow both localhost and IP
+    origin: [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'https://chatting-app-frontend-h3mg.vercel.app',
+        'https://chatting-app-backend-vvad.onrender.com'
+    ], // Allow both localhost, IP, and hosted URLs
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -63,7 +68,12 @@ connectDB(); // Wait for MongoDB to connect
 // Initialize Socket.IO with proper error handling
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+        origin: [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'https://chatting-app-frontend-h3mg.vercel.app',
+            'https://chatting-app-backend-vvad.onrender.com'
+        ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
     },
