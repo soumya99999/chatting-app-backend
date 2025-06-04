@@ -32,7 +32,7 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
-        'https://chatting-app-frontend-h3mg.vercel.app',
+        'https://chatting-app-frontend-roan.vercel.app',
         'https://chatting-app-backend-vvad.onrender.com'
     ], // Allow both localhost, IP, and hosted URLs
     credentials: true,
@@ -71,7 +71,7 @@ const io = new Server(server, {
         origin: [
             'http://localhost:5173',
             'http://127.0.0.1:5173',
-            'https://chatting-app-frontend-h3mg.vercel.app',
+            'https://chatting-app-frontend-roan.vercel.app',
             'https://chatting-app-backend-vvad.onrender.com'
         ],
         credentials: true,
