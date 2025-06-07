@@ -101,12 +101,13 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         // Set the token as an HTTP-only cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // false in development
-            sameSite: 'lax', 
+            secure: process.env.NODE_ENV === 'production', // true in production, false in development
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
             path: '/',
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
         console.log(" user controller "+req.cookies.token);
+        
         
 
         // Respond with user information (without sending the token in the response body)
