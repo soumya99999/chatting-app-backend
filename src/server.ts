@@ -22,9 +22,9 @@ const server = http.createServer(app);
 
 // ✅ CORS setup — only allow known frontend origins
 const allowedOrigins = [
+  'https://chatting-app-frontend-roan.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'https://chatting-app-frontend-roan.vercel.app'
 ];
 
 app.use(cors({
