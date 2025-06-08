@@ -32,7 +32,8 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://chatting-app-frontend-roan.vercel.app',
-    'https://chatting-app-backend-vvad.onrender.com'
+    'https://chatting-app-backend-vvad.onrender.com',
+    'https://chatting-app-backend-vvad.onrender.com:10000'
 ];
 app.use(cors({
     origin: function (origin, callback) {
@@ -58,7 +59,16 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         scriptSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        connectSrc: ["'self'", 'http://localhost:8081', 'http://127.0.0.1:8081', 'http://localhost:5173', 'ws://localhost:8081'],
+        connectSrc: [
+          "'self'",
+          'http://localhost:8081',
+          'http://127.0.0.1:8081',
+          'http://localhost:5173',
+          'ws://localhost:8081',
+          'https://chatting-app-backend-vvad.onrender.com',
+          'wss://chatting-app-backend-vvad.onrender.com',
+          'https://chatting-app-frontend-roan.vercel.app'
+        ],
         frameSrc: ["'self'", 'https://accounts.google.com'],
       },
     })
@@ -81,6 +91,7 @@ const io = new Server(server, {
             'http://localhost:5173',
             'http://127.0.0.1:5173',
             'https://chatting-app-frontend-roan.vercel.app',
+            'https://chatting-app-frontend-roan.vercel.app:10000',
             'https://chatting-app-backend-vvad.onrender.com'
         ],
         credentials: true,
