@@ -1,9 +1,10 @@
 import DataUriParser from "datauri/parser.js";
 import path from "path";
+import multer from "multer";
 
 const parser = new DataUriParser();
 
-const getDataUri = (file: Express.Multer.File): string | undefined => {
+const getDataUri = (file: multer.File): string | undefined => {
     if (!file || !file.buffer) return undefined; // Ensure file exists and has a buffer
 
     const extName = path.extname(file.originalname).toString();
