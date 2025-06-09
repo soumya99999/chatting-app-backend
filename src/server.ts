@@ -4,7 +4,7 @@ dotenv.config();
 import express, { Application } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import passport from 'passport';
@@ -16,33 +16,37 @@ import messageRoutes from './routes/messageRoutes';
 import initSocket from './socket';
 import './Config/passport';
 
-// Initialize app and server
+// ✅ Initialize Express and HTTP server
 const app: Application = express();
 const server = http.createServer(app);
 
-// ✅ CORS setup — only allow known frontend origins
+// ✅ Define allowed origins
 const allowedOrigins = [
-  'https://chatting-app-frontend-roan.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://chatting-app-frontend-roan.vercel.app',
 ];
 
-app.use(cors({
+// ✅ Setup CORS configuration
+const corsOptions: CorsOptions = {
   origin: function (origin, callback) {
-    console.log('Incoming origin:', origin); // ✅ Debug CORS
-    if (!origin) return callback(null, true); // Allow mobile apps / curl
-    if (allowedOrigins.includes(origin)) {
+    console.log('🔍 Incoming origin:', origin);
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log('✅ Allowed origin:', origin);
       return callback(null, true);
     } else {
+      console.log('❌ Blocked origin:', origin);
       return callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-// ✅ Helmet security headers with CSP
+app.use(cors(corsOptions));
+
+// ✅ Helmet for secure headers
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -55,10 +59,10 @@ app.use(
         "'self'",
         'https://chatting-app-frontend-roan.vercel.app',
         'https://chatting-app-backend-vvad.onrender.com',
-        'wss://chatting-app-backend-vvad.onrender.com'
+        'wss://chatting-app-backend-vvad.onrender.com',
       ],
       frameSrc: ["'self'", 'https://accounts.google.com'],
-    }
+    },
   })
 );
 
@@ -71,15 +75,15 @@ app.use(passport.initialize());
 // ✅ Connect to MongoDB
 connectDB();
 
-// ✅ Initialize Socket.IO
+// ✅ Initialize Socket.IO with proper CORS
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
   },
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
 });
 
 io.on('connect_error', (error) => {
@@ -110,18 +114,18 @@ app.use((err: any, req: any, res: any, next: any) => {
   console.error('Global error handler:', err);
   res.status(err.status || 500).json({
     message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
+    error: process.env.NODE_ENV === 'development' ? err : {},
   });
 });
 
-// ✅ Start server on assigned Render port
+// ✅ Start server
 const PORT = process.env.PORT || 8081;
 server.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
   console.log('     ==> Your service is live 🎉');
 });
 
-// ✅ Catch unhandled errors
+// ✅ Catch server errors
 server.on('error', (error: any) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use`);
