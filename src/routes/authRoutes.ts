@@ -6,9 +6,18 @@ import { loginUser, logoutUser, registerUser, sendOTP, verifyOTP } from "../cont
 
 const router = express.Router();
 
+const FRONTEND_LOCAL_URL = process.env.FRONTEND_LOCAL_URL || 'http://localhost:5173';
+const FRONTEND_PROD_URL = process.env.FRONTEND_PROD_URL || 'https://chatting-app-frontend-roan.vercel.app';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+const allowedOrigins = [FRONTEND_LOCAL_URL, FRONTEND_PROD_URL];
+
 // Add CORS headers for Google OAuth routes
 router.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -30,7 +39,8 @@ router.get(
     try {
       const user = req.user;
       if (!user) {
-        return res.redirect('http://localhost:5173/login?error=Authentication failed');
+        const redirectUrl = NODE_ENV === 'production' ? FRONTEND_PROD_URL : FRONTEND_LOCAL_URL;
+        return res.redirect(`${redirectUrl}/login?error=Authentication failed`);
       }
 
       // Generate JWT token
@@ -43,17 +53,19 @@ router.get(
       // Set the token as an HTTP-only cookie
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
         maxAge: 24 * 60 * 60 * 1000 // 1 day
       });
 
       // Redirect to frontend with success message
-      res.redirect('http://localhost:5173/auth/callback?success=true');
+      const redirectUrl = NODE_ENV === 'production' ? FRONTEND_PROD_URL : FRONTEND_LOCAL_URL;
+      res.redirect(`${redirectUrl}/auth/callback?success=true`);
     } catch (error) {
       console.error('Error in Google callback:', error);
-      res.redirect('http://localhost:5173/login?error=Authentication failed');
+      const redirectUrl = NODE_ENV === 'production' ? FRONTEND_PROD_URL : FRONTEND_LOCAL_URL;
+      res.redirect(`${redirectUrl}/login?error=Authentication failed`);
     }
   }
 );
