@@ -3,7 +3,7 @@ import path from "path";
 
 const parser = new DataUriParser();
 
-const getDataUri = (file: Express.Multer.File): string | undefined => {
+const getDataUri = (file: any): string | undefined => {
     if (!file || !file.buffer) return undefined; // Ensure file exists and has a buffer
 
     const extName = path.extname(file.originalname).toString();
